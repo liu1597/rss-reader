@@ -21,92 +21,103 @@ export async function displayFeed(): Promise<void> {
 
 function displayFeedItems(feeds: Feed[]): void {
     const feedBoxContainer = document.querySelector(".feed-box-container");
-    if (feedBoxContainer) {
-        feedBoxContainer.innerHTML = ""; // Clear existing feed items
-
-        feeds.forEach((feed) => {
-            feed.items.forEach((item) => {
-                const feedBox = document.createElement("div");
-                feedBox.classList.add("feed-box");
-
-                const feedBoxImg = document.createElement("div");
-                feedBoxImg.classList.add("feed-box-img");
-                const img = document.createElement("img");
-                img.src = item.image || "assets/default-image.jpg";
-                img.alt = "feed img";
-                feedBoxImg.appendChild(img);
-
-                const feedImgLink = document.createElement("a");
-                feedImgLink.href = `single.html?title=${encodeURIComponent(item.title || "")}`;
-                feedImgLink.classList.add("feed-img-link");
-                const arrowIcon = document.createElement("i");
-                arrowIcon.classList.add("fa-solid", "fa-arrow-up-right-from-square");
-                feedImgLink.appendChild(arrowIcon);
-                feedBoxImg.appendChild(feedImgLink);
-
-                feedBox.appendChild(feedBoxImg);
-
-                const feedBoxText = document.createElement("div");
-                feedBoxText.classList.add("feed-box-text");
-
-                const strong = document.createElement("strong");
-                strong.textContent = item.pubDate ? item.pubDate.substring(0, 16) : "No date";
-                feedBoxText.appendChild(strong);
-
-                const titleLink = document.createElement("a");
-                titleLink.href = `single.html?title=${encodeURIComponent(item.title || "")}`;
-                titleLink.textContent = item.title || "";
-                feedBoxText.appendChild(titleLink);
-
-                const description = document.createElement("p");
-                description.textContent = item.description || "No Description";
-                feedBoxText.appendChild(description);
-
-                feedBox.appendChild(feedBoxText);
-
-                feedBoxContainer.appendChild(feedBox);
-            });
-        });
+    if (feedBoxContainer === null) {
+        return;
     }
-}
 
-export function displayExpandedArticle(title: RssItem): void {
-    // Find the corresponding RssItem based on the title
-    const selectedRssItem = getState()
-        .feeds.flatMap((feed) => feed.items)
-        .find((item) => item.title === title.title);
+    const items: HTMLDivElement[] = [];
 
-    if (selectedRssItem) {
-        // Store the selectedRssItem data in sessionStorage
-        localStorage.setItem(selectedRssItem.id, JSON.stringify(selectedRssItem));
-
-        // Redirect to single.html
-        window.location.href = `single.html?id=${selectedRssItem.id}`;
-    } else {
-        console.error("Selected RSS item not found.");
-        // You can display a message or handle the situation differently if the item is not found.
-    }
-}
-
-export function addFeedClickedEvent() {
-    // Add event listener to handle click on feed links
-    document.addEventListener("DOMContentLoaded", () => {
-        // Add click event listeners to feed links
-        const feedLinks = document.querySelectorAll(".feed-img-link, .feed-box-text a");
-        feedLinks.forEach((link) => {
-            link.addEventListener("click", (event) => {
-                event.preventDefault(); // Prevent the default behavior of link clicks
-                const title = link.textContent || "";
-                const selectedRssItem = getState()
-                    .feeds.flatMap((feed) => feed.items)
-                    .find((item) => item.title === title);
-
-                if (selectedRssItem) {
-                    displayExpandedArticle(selectedRssItem);
-                } else {
-                    console.error("Selected RSS item not found.");
-                }
-            });
+    // Add all feeds items
+    feeds.forEach((feed) => {
+        feed.items.forEach((item) => {
+            const feedBox = createFeedItem(item);
+            items.push(feedBox);
         });
     });
+
+    // Clear existing feed items
+    feedBoxContainer.innerHTML = "";
+
+    // Append all children at once
+    feedBoxContainer.append(...items);
+}
+
+function createFeedItem(item: RssItem) {
+    const { image, link } = item;
+
+    // Item Div
+    // - Image Div
+    // - Text Div
+    const itemDiv = document.createElement("div");
+    itemDiv.classList.add("feed-box");
+
+    // Image Div
+    const imageDiv = document.createElement("div");
+    imageDiv.classList.add("feed-box-img");
+
+    // Picture
+    const imgElement = document.createElement("img");
+    imgElement.src = image || "assets/default-image.jpg";
+    imgElement.alt = "feed img";
+
+    if (link) {
+        const aElement = document.createElement("a");
+        aElement.target = "_blank";
+        aElement.href = link;
+        aElement.classList.add("feed-img-link");
+
+        const arrowIcon = document.createElement("i");
+        arrowIcon.classList.add("fa-solid", "fa-arrow-up-right-from-square");
+
+        aElement.appendChild(arrowIcon);
+        imageDiv.appendChild(aElement);
+    }
+
+    imageDiv.appendChild(imgElement);
+    itemDiv.appendChild(imageDiv);
+
+    // Text Div contains
+    // - Date
+    // - Title
+    // - Description
+    const textDiv = document.createElement("div");
+    textDiv.classList.add("feed-box-text");
+
+    // Date
+    const strong = document.createElement("strong");
+    strong.textContent = item.pubDate ? item.pubDate.substring(0, 16) : "No date";
+    textDiv.appendChild(strong);
+
+    // Title
+    const aElement = document.createElement("a");
+    if (link) {
+        aElement.target = "_blank";
+        aElement.href = link;
+    }
+    aElement.textContent = item.title || "";
+    textDiv.appendChild(aElement);
+
+    // Description
+    const description = document.createElement("p");
+    description.textContent = makeDescriptionPretty(item.description || "No Description");
+    textDiv.appendChild(description);
+
+    itemDiv.appendChild(textDiv);
+    return itemDiv;
+}
+
+function makeDescriptionPretty(description: string): string {
+    const replacements: [string, string][] = [
+        [`&quot;`, `"`],
+        [`&apos;`, `'`],
+        [`<p>`, ``],
+        [`</p>`, ``],
+    ];
+
+    let newDescription = description;
+    replacements.forEach(([before, after]) => {
+        newDescription = newDescription.replaceAll(before, after);
+    });
+
+    return newDescription;
 }
