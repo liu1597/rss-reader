@@ -18,8 +18,6 @@ Clone this repository using GitHub Desktop
   Open GitHub Desktop
 Click Add
 Select Clone repository...
-Click url
-Enter url https://github.com/wandyezj/rss-reader.git
 Click clone
 Open the repository in Visual Studio Code
 
